@@ -9,3 +9,7 @@ The **Crime Prediction System** is a machine learning-based project designed to 
 - **User-Friendly Interface**: Simplified input system for easy use by non-technical users.
 
 
+![crime predection](https://github.com/user-attachments/assets/f2c4744e-64e9-4965-83b8-8224dab00d3a)
+![crim e predection](https://github.com/user-attachments/assets/2b1aa368-2cb7-4337-b4af-78a945deb2f7)
+
+
