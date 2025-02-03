@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tamil Nadu Crime Prediction System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+
+        .map-container {
+            flex: 2;
+            position: relative;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        #map-wrapper {
+            position: relative;
+            width: 100%;
+            height: 600px;
+        }
+
+        .district-label {
+            position: absolute;
+           /* background-color: rgba(79, 70, 229, 0.8);*/
+            color: black;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .district-label:hover {
+            background-color: rgba(79, 70, 229, 1);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .district-label.active {
+            background-color: #3730A3;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        #tamil-nadu-map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .predictions-container {
+            flex: 1;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .crime-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .crime-stat {
+            background-color: #f0f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Tamil Nadu Crime Prediction System</h1>
+            <div>
+                <input type="number" id="year-input" min="2000" max="2100" value="2024">
+                <button id="predict-btn">Predict</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map-wrapper">
+                    <!-- SVG and district labels will be added here -->
+                </div>
+            </div>
+            
+            <div class="predictions-container">
+                <h2 id="selected-district-title">Select a District</h2>
+                <div id="crime-predictions" class="crime-stats">
+                    <!-- Crime predictions will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive district data with precise positioning
+        const districtData = {
+            'Chennai': { 
+                x: 80, // Percentage or pixel position
+                y: 13, 
+                name: 'Chennai'
+            },
+            'Coimbatore': { 
+                x: 30, 
+                y: 55, 
+                name: 'Coimbatore'
+            },
+            'Salem': { 
+                x: 50, 
+                y: 35, 
+                name: 'Salem'
+            },
+            'Vellore': { 
+                x: 60, 
+                y: 15, 
+                name: 'Vellore'
+            },
+            'Thirunelveli': { 
+                x: 39, 
+                y: 85, 
+                name: 'Thirunelveli'
+            },
+            'Erode': { 
+                x: 37, 
+                y: 37, 
+                name: 'Erode'
+            },
+            'Thanjavur': { 
+                x: 62, 
+                y: 50, 
+                name: 'Thanjavur'
+            },
+            'Thiruvallur': { 
+                x: 75, 
+                y: 8, 
+                name: 'Thiruvallur'
+            },
+            'Ranipet': { 
+                x: 66, 
+                y: 13, 
+                name: 'Ranipet'
+            },
+            'Kanchipuram': { 
+                x: 70, 
+                y: 15, 
+                name: 'Kanchipuram'
+            },
+            'Chengalpattu': { 
+                x: 75, 
+                y: 20, 
+                name: 'chengalpattu'
+            },
+            'Thiruvannamalai': { 
+                x: 63, 
+                y: 21, 
+                name: 'Thiruvannamalai'
+            },
+            'viluppuram': { 
+                x: 68, 
+                y: 27,
+                name: 'Viluppuram'
+            },
+            'Tirupattur': { 
+                x: 56, 
+                y: 18, 
+                name: 'Tirupattur'
+            },
+            'Krishnagiri': { 
+                x: 46,
+                y: 20, 
+                name: 'Krishnagiri'
+            },
+            'Dharmapuri': { 
+                x: 49, 
+                y: 28, 
+                name: 'Dharmapuri'
+            },
+            'Kallakurichi': { 
+                x: 61, 
+                y: 31, 
+                name: 'Kallakurichi'
+            },
+            'Cuddalore': { 
+                x: 66, 
+                y: 37, 
+                name: 'Cuddalore'
+            },
+            'Perambalur': { 
+                x: 59, 
+                y: 42, 
+                name: 'Perambalur'
+            },
+            'Ariyalur': { 
+                x: 65, 
+                y: 44, 
+                name: 'Ariyalur'
+            },
+            'Mayiladuthurai': { 
+                x: 75, 
+                y: 45, 
+                name: 'Mayiladuthurai'
+            },
+            'Namakkal': { 
+                x: 48, 
+                y: 41, 
+                name: 'Namakkal'
+            },
+            'nilgiris': { 
+                x: 28, 
+                y: 38, 
+                name: 'Nilgiris'
+            },
+            'Trichy': { 
+                x: 55, 
+                y: 46, 
+                name: 'Trichy'
+            },
+            'Tiruvarur': { 
+                x: 68, 
+                y: 53, 
+                name: 'Tiruvarur'
+            },
+            'Nagapattinam': { 
+                x: 75, 
+                y: 56, 
+                name: 'Nagapattinam'
+            },
+            'Karur': { 
+                x: 48, 
+                y: 48, 
+                name: 'Karur'
+            },
+            'tiruppur': { 
+                x: 39, 
+                y: 50, 
+                name: 'Tiruppur'
+            },
+            'Dindigul': { 
+                x: 43, 
+                y:56, 
+                name: 'Dindigul'
+            },
+            'Theni': { 
+                x: 38, 
+                y: 65, 
+                name: 'Theni'
+            },
+            'Madurai': { 
+                x: 45, 
+                y: 65, 
+                name: 'Madurai'
+            },
+            'Sivagangai': { 
+                x: 55, 
+                y: 65, 
+                name: 'Sivagangai'
+            },
+            'Virudhunagar': { 
+                x: 44, 
+                y: 72, 
+                name: 'Virudhunagar'
+            },
+            'Ramnathapuram': { 
+                x: 57, 
+                y: 73, 
+                name: 'Ramnathapuram'
+            },
+            'tenkasi': { 
+                x: 37, 
+                y: 77, 
+                name: 'Tenkasi'
+            },
+            'Thoothukudi': { 
+                x: 47, 
+                y: 80, 
+                name: 'Thoothukudi'
+            }
+            ,
+            'Kanyakumari': { 
+                x: 32, 
+                y: 90, 
+                name: 'Kanyakumari'
+            }
+
+
+        };
+
+        // Load SVG map
+        function loadSVGMap() {
+            const mapWrapper = document.getElementById('map-wrapper');
+            
+            // Create map object
+            const mapObject = document.createElement('object');
+            mapObject.setAttribute('id', 'tamil-nadu-map');
+            mapObject.setAttribute('type', 'image/svg+xml');
+            mapObject.setAttribute('data', 'Tamil Nadu Outline Map.svg');
+            
+            // Add load event listener
+            mapObject.addEventListener('load', function() {
+                try {
+                    const svgDocument = mapObject.contentDocument;
+                    const svgElement = svgDocument.querySelector('svg');
+                    
+                    if (svgElement) {
+                        addDistrictLabels(mapWrapper);
+                    } else {
+                        console.error('SVG element not found');
+                    }
+                } catch (error) {
+                    console.error('Error loading SVG:', error);
+                }
+            });
+
+            mapWrapper.appendChild(mapObject);
+        }
+
+        // Add district labels on the map
+        function addDistrictLabels(mapWrapper) {
+            Object.values(districtData).forEach((district) => {
+                // Create district label
+                const label = document.createElement('div');
+                label.classList.add('district-label');
+                label.textContent = district.name;
+                
+                // Set position using percentage
+                label.style.left = `${district.x}%`;
+                label.style.top = `${district.y}%`;
+                
+                // Add click event to label
+                label.addEventListener('click', () => selectDistrict(district.name));
+                
+                mapWrapper.appendChild(label);
+            });
+        }
+
+        // Select district and fetch predictions
+        async function selectDistrict(district) {
+            // Remove active state from all labels
+            document.querySelectorAll('.district-label').forEach(label => {
+                label.classList.remove('active');
+            });
+
+            // Activate selected label
+            const selectedLabel = Array.from(document.querySelectorAll('.district-label'))
+                .find(label => label.textContent === district);
+            
+            if (selectedLabel ) {
+                selectedLabel.classList.add('active');
+            }
+
+            // Update district title
+            document.getElementById('selected-district-title').textContent = `${district} District Predictions`;
+
+            try {
+                // Get year from input
+                const year = document.getElementById('year-input').value;
+
+                // Fetch predictions from backend
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        district: district, year: parseInt(year)
+                    })
+                });
+
+                const data = await response.json();
+                displayPredictions(data.predictions);
+            } catch (error) {
+                console.error('Prediction fetch error:', error);
+                displayErrorPredictions();
+            }
+        }
+
+        // Display crime predictions
+        function displayPredictions(predictions) {
+            const predictionsContainer = document.getElementById('crime-predictions');
+            predictionsContainer.innerHTML = '';
+
+            Object.entries(predictions).forEach(([crime, value]) => {
+                if (crime !== 'Total_Crime') {
+                    const statElement = document.createElement('div');
+                    statElement.classList.add('crime-stat');
+                    statElement.innerHTML = `
+                        <strong>${crime.replace(/_/g, ' ')}</strong>
+                        <div>${Math.round(value)}</div>
+                    `;
+                    predictionsContainer.appendChild(statElement);
+                }
+            });
+        }
+
+        // Display error predictions
+        function displayErrorPredictions() {
+            const predictionsContainer = document.getElementById('crime-predictions');
+            predictionsContainer.innerHTML = `
+                <div style="text-align: center;">
+                    Unable to fetch predictions. Please try again.
+                </div>
+            `;
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSVGMap();
+        });
+    </script>
+</body>
+</html>
